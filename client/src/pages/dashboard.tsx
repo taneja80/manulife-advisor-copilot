@@ -38,16 +38,15 @@ import {
   getClientWeightedReturns,
   getClientFundExposure,
   getClientFeeAnalysis,
-  getClientRebalanceAlerts,
   getClientPerformanceHistory,
   getClientBenchmarkComparison,
+  getClientPortfolioDrift,
   type Goal,
   type Client,
 } from "@/lib/mockData";
 import {
   Wallet,
   TrendingUp,
-  TrendingDown,
   Target,
   Shield,
   ArrowLeft,
@@ -70,7 +69,6 @@ import {
   CheckCircle2,
   ArrowUpRight,
   Layers,
-  RefreshCw,
 } from "lucide-react";
 
 interface DashboardProps {
@@ -108,7 +106,7 @@ export default function Dashboard({ onCreateGoal }: DashboardProps) {
   const riskMetrics = getClientRiskMetrics(client);
   const weightedReturns = getClientWeightedReturns(client);
   const fundExposure = useMemo(() => getClientFundExposure(client), [client]);
-  const rebalanceAlerts = useMemo(() => getClientRebalanceAlerts(client), [client]);
+  const portfolioDrift = useMemo(() => getClientPortfolioDrift(client), [client]);
   const perfHistory = useMemo(() => getClientPerformanceHistory(client), [client]);
   const benchmarkData = useMemo(() => getClientBenchmarkComparison(client), [client]);
 
@@ -186,9 +184,7 @@ export default function Dashboard({ onCreateGoal }: DashboardProps) {
           <ContributionTracker goals={client.goals} client={client} />
         </div>
 
-        {rebalanceAlerts.length > 0 && (
-          <RebalanceAlertsSection alerts={rebalanceAlerts} />
-        )}
+        <PortfolioDriftSection drift={portfolioDrift} clientRiskProfile={client.riskProfile} />
 
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -497,42 +493,96 @@ function ContributionTracker({ goals, client }: { goals: Goal[]; client: Client 
   );
 }
 
-function RebalanceAlertsSection({ alerts }: { alerts: ReturnType<typeof getClientRebalanceAlerts> }) {
+function PortfolioDriftSection({ drift, clientRiskProfile }: { drift: ReturnType<typeof getClientPortfolioDrift>; clientRiskProfile: string }) {
+  const statusColor = drift.status === "aligned" ? "#00A758" : drift.status === "minor-drift" ? "#F59E0B" : "#D9534F";
+  const statusLabel = drift.status === "aligned" ? "Well Aligned" : drift.status === "minor-drift" ? "Minor Drift" : "Significant Drift";
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-      <Card data-testid="card-rebalance-alerts">
+      <Card data-testid="card-portfolio-drift">
         <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <RefreshCw className="w-4 h-4 text-[#D9534F]" />
-            Rebalancing Alerts
+            <Layers className="w-4 h-4 text-[#0C7143]" />
+            Portfolio Drift from Model
           </CardTitle>
-          <Badge variant="destructive" className="text-[10px]">{alerts.length} drift{alerts.length > 1 ? "s" : ""}</Badge>
+          <Badge
+            variant="outline"
+            className="text-[10px] border-current"
+            style={{ color: statusColor }}
+          >
+            {statusLabel}
+          </Badge>
         </CardHeader>
-        <CardContent className="pb-4">
-          <div className="space-y-2">
-            {alerts.slice(0, 4).map((alert, idx) => (
-              <div key={idx} className="flex items-start gap-3 p-2.5 rounded-lg bg-muted/30" data-testid={`alert-rebalance-${idx}`}>
-                <div className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${alert.direction === "over" ? "bg-[#D9534F]/10" : "bg-[#F59E0B]/10"}`}>
-                  {alert.direction === "over" ? (
-                    <TrendingUp className="w-3 h-3 text-[#D9534F]" />
-                  ) : (
-                    <TrendingDown className="w-3 h-3 text-[#F59E0B]" />
-                  )}
+        <CardContent className="pb-4 space-y-4">
+          <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/30 flex-wrap">
+            <div className="flex-1 min-w-[140px]">
+              <p className="text-[11px] text-muted-foreground">Recommended Model</p>
+              <p className="text-sm font-semibold">{drift.modelName}</p>
+              <p className="text-[11px] text-muted-foreground">
+                Based on {clientRiskProfile} risk profile
+              </p>
+            </div>
+            <div className="text-center px-4">
+              <p className="text-2xl font-bold" style={{ color: statusColor }} data-testid="text-overall-drift">
+                {drift.overallDrift}%
+              </p>
+              <p className="text-[10px] text-muted-foreground">Overall Drift</p>
+            </div>
+          </div>
+
+          <div className="space-y-2.5">
+            {drift.fundDrifts.map((fd) => {
+              const globalMax = Math.max(...drift.fundDrifts.map(d => Math.max(d.actualWeight, d.modelWeight)), 1);
+              const barScale = 100 / (globalMax * 1.15);
+              return (
+                <div key={fd.fundId} className="space-y-1" data-testid={`drift-fund-${fd.fundId}`}>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium truncate">{fd.fundName}</p>
+                      <p className="text-[10px] text-muted-foreground">{fd.category}</p>
+                    </div>
+                    {fd.direction !== "match" && (
+                      <Badge
+                        variant={fd.direction === "over" ? "destructive" : "outline"}
+                        className="text-[10px] shrink-0"
+                      >
+                        {fd.direction === "over" ? "+" : ""}{fd.drift}%
+                      </Badge>
+                    )}
+                    {fd.direction === "match" && (
+                      <Badge variant="outline" className="text-[10px] shrink-0 text-[#00A758] border-[#00A758]">
+                        Aligned
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground w-12 shrink-0">Actual</span>
+                      <div className="flex-1 h-3 rounded-sm bg-muted/50 overflow-hidden">
+                        <div
+                          className="h-full rounded-sm"
+                          style={{
+                            width: `${fd.actualWeight * barScale}%`,
+                            backgroundColor: fd.direction === "over" ? "#D9534F" : fd.direction === "under" ? "#F59E0B" : "#00A758",
+                          }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-medium w-10 text-right shrink-0">{fd.actualWeight}%</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground w-12 shrink-0">Model</span>
+                      <div className="flex-1 h-3 rounded-sm bg-muted/50 overflow-hidden">
+                        <div
+                          className="h-full rounded-sm bg-[#0C7143]/60"
+                          style={{ width: `${fd.modelWeight * barScale}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-medium w-10 text-right shrink-0">{fd.modelWeight}%</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold">{alert.fundName}</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {alert.goalName} &middot; Current: {alert.currentWeight}% &middot; Target: {alert.targetWeight}%
-                  </p>
-                </div>
-                <Badge
-                  variant={alert.direction === "over" ? "destructive" : "outline"}
-                  className="text-[10px] shrink-0"
-                >
-                  {alert.direction === "over" ? "+" : ""}{alert.drift}% drift
-                </Badge>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
@@ -545,7 +595,7 @@ function MeetingPrepDialog({ client }: { client: Client }) {
   const riskMetrics = getClientRiskMetrics(client);
   const feeAnalysis = getClientFeeAnalysis(client);
   const benchmark = getClientBenchmarkComparison(client);
-  const rebalAlerts = getClientRebalanceAlerts(client);
+  const driftData = getClientPortfolioDrift(client);
   const goalsOnTrack = client.goals.filter((g) => g.status !== "off-track").length;
   const offTrackGoals = client.goals.filter((g) => g.status === "off-track");
   const totalContributions = client.goals.reduce((s, g) => s + g.monthlyContribution, 0);
@@ -559,8 +609,8 @@ function MeetingPrepDialog({ client }: { client: Client }) {
   if (offTrackGoals.length > 0) {
     talkingPoints.push({ text: `${offTrackGoals.length} goal(s) off-track: ${offTrackGoals.map(g => g.name).join(", ")}`, type: "warning" as const });
   }
-  if (rebalAlerts.length > 0) {
-    talkingPoints.push({ text: `${rebalAlerts.length} fund(s) need rebalancing due to allocation drift`, type: "warning" as const });
+  if (driftData.status !== "aligned") {
+    talkingPoints.push({ text: `Portfolio has ${driftData.overallDrift}% drift from ${driftData.modelName} model - review fund allocation alignment`, type: driftData.status === "significant-drift" ? "warning" as const : "info" as const });
   }
   if (feeAnalysis.weightedExpenseRatio > 1.2) {
     talkingPoints.push({ text: `Weighted expense ratio is ${feeAnalysis.weightedExpenseRatio}% - review lower cost fund options`, type: "info" as const });

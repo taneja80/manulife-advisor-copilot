@@ -958,3 +958,116 @@ export function getClientBenchmarkComparison(client: Client): BenchmarkCompariso
     outperformsBalanced: clientYtd > balancedYtd,
   };
 }
+
+const riskProfileToModelProfile: Record<string, string> = {
+  Conservative: "Conservative",
+  Balanced: "Moderate",
+  Moderate: "Moderate",
+  Growth: "Moderate",
+  Aggressive: "Aggressive",
+};
+
+const defaultModelPortfolios: Record<string, { name: string; funds: { fundId: string; weight: number }[] }> = {
+  Conservative: {
+    name: "Conservative Default",
+    funds: [
+      { fundId: "f5", weight: 45 },
+      { fundId: "f6", weight: 35 },
+      { fundId: "f2", weight: 20 },
+    ],
+  },
+  Moderate: {
+    name: "Moderate Default",
+    funds: [
+      { fundId: "f1", weight: 30 },
+      { fundId: "f6", weight: 25 },
+      { fundId: "f2", weight: 25 },
+      { fundId: "f5", weight: 20 },
+    ],
+  },
+  Aggressive: {
+    name: "Aggressive Default",
+    funds: [
+      { fundId: "f3", weight: 30 },
+      { fundId: "f4", weight: 30 },
+      { fundId: "f1", weight: 25 },
+      { fundId: "f2", weight: 15 },
+    ],
+  },
+};
+
+export interface PortfolioDriftFund {
+  fundId: string;
+  fundName: string;
+  category: string;
+  actualWeight: number;
+  modelWeight: number;
+  drift: number;
+  direction: "over" | "under" | "match";
+}
+
+export interface PortfolioDrift {
+  modelName: string;
+  modelRiskProfile: string;
+  overallDrift: number;
+  status: "aligned" | "minor-drift" | "significant-drift";
+  fundDrifts: PortfolioDriftFund[];
+}
+
+export function getClientPortfolioDrift(client: Client): PortfolioDrift {
+  const modelProfile = riskProfileToModelProfile[client.riskProfile] || "Moderate";
+  const modelPortfolio = defaultModelPortfolios[modelProfile];
+
+  const exposure = getClientFundExposure(client);
+  const actualMap = new Map<string, number>();
+  for (const e of exposure) {
+    actualMap.set(e.fundId, e.weight);
+  }
+
+  const modelMap = new Map<string, number>();
+  for (const f of modelPortfolio.funds) {
+    modelMap.set(f.fundId, f.weight);
+  }
+
+  const allFundIds = new Set<string>();
+  actualMap.forEach((_, k) => allFundIds.add(k));
+  modelMap.forEach((_, k) => allFundIds.add(k));
+
+  const fundDrifts: PortfolioDriftFund[] = [];
+  let totalAbsDrift = 0;
+
+  allFundIds.forEach((fundId) => {
+    const fund = getFundById(fundId);
+    if (!fund) return;
+    const actual = actualMap.get(fundId) || 0;
+    const model = modelMap.get(fundId) || 0;
+    const drift = Math.round((actual - model) * 10) / 10;
+    totalAbsDrift += Math.abs(drift);
+
+    fundDrifts.push({
+      fundId,
+      fundName: fund.name,
+      category: fund.category,
+      actualWeight: Math.round(actual * 10) / 10,
+      modelWeight: model,
+      drift,
+      direction: Math.abs(drift) < 1 ? "match" : drift > 0 ? "over" : "under",
+    });
+  });
+
+  const overallDrift = Math.round((totalAbsDrift / 2) * 10) / 10;
+
+  let status: PortfolioDrift["status"] = "aligned";
+  if (overallDrift > 15) status = "significant-drift";
+  else if (overallDrift > 5) status = "minor-drift";
+
+  fundDrifts.sort((a, b) => Math.abs(b.drift) - Math.abs(a.drift));
+
+  return {
+    modelName: modelPortfolio.name,
+    modelRiskProfile: modelProfile,
+    overallDrift,
+    status,
+    fundDrifts,
+  };
+}

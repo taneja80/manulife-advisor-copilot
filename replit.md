@@ -31,8 +31,8 @@ A financial advisor dashboard built with React, Recharts, and Framer Motion for 
 10. **Performance History Chart** - Area chart showing portfolio growth over time vs PSEi (9.2% annual) and balanced benchmark (6.8% annual) with deterministic monthly data points
 11. **Benchmark Comparison** - Bar chart comparing client YTD return vs PSEi and balanced fund with outperformance/underperformance indicators
 12. **Fee Impact Analysis** - Card showing weighted expense ratio, annual/monthly fee cost in PHP, 10-year fee drag projection, and per-fund fee breakdown
-13. **Rebalancing Alerts** - Drift detection when actual portfolio weight deviates from target weight by >5%; sorted by drift magnitude with over/under direction
-14. **Meeting Prep** - Dialog modal triggered by "Prep Meeting" button with one-page client summary: AUM, returns, goals status, risk metrics, expense ratio, and AI-generated talking points covering performance vs benchmarks, off-track goals, rebalancing needs, cash drag, and inflation
+13. **Portfolio Drift from Model** - Compares client's actual aggregated fund allocation across all goals against the model portfolio recommended for their risk profile. Shows overall drift score, per-fund comparison bars (actual vs model weight), and status indicator (aligned/minor-drift/significant-drift). Risk profile mapping: Conservative→Conservative, Balanced/Growth→Moderate, Aggressive→Aggressive model portfolios.
+14. **Meeting Prep** - Dialog modal triggered by "Prep Meeting" button with one-page client summary: AUM, returns, goals status, risk metrics, expense ratio, and AI-generated talking points covering performance vs benchmarks, off-track goals, portfolio drift from model, cash drag, and inflation
 
 ## Risk Profiling
 - 6 multiple-choice questions scored 1-3 (conservative to aggressive)

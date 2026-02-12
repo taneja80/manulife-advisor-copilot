@@ -384,8 +384,8 @@ Returns aggregated fund exposure across all goals. See [Section 8.1](#81-fund-ex
 #### GET /api/clients/:id/fee-analysis
 Returns fee impact analysis. See [Section 8.2](#82-fee-impact-analysis).
 
-#### GET /api/clients/:id/rebalance-alerts
-Returns portfolio drift alerts. See [Section 8.3](#83-rebalancing-alerts).
+#### GET /api/clients/:id/portfolio-drift
+Returns portfolio drift from recommended model portfolio. See [Section 8.3](#83-portfolio-drift-from-model).
 
 #### GET /api/clients/:id/performance-history
 Returns monthly performance points. See [Section 8.4](#84-performance-history-generation).
@@ -877,38 +877,57 @@ interface FeeAnalysis {
 }
 ```
 
-### 8.3 Rebalancing Alerts
+### 8.3 Portfolio Drift from Model
 
-Detects when actual portfolio weights drift from target weights.
+Compares client's actual aggregated fund allocation across all goals against the model portfolio recommended for their risk profile. This is a holistic, strategic view of portfolio alignment.
+
+**Risk Profile to Model Portfolio Mapping:**
+```
+Client Risk Profile  →  Model Portfolio Profile
+Conservative         →  Conservative
+Balanced             →  Moderate
+Moderate             →  Moderate
+Growth               →  Moderate
+Aggressive           →  Aggressive
+```
 
 ```
 Algorithm:
-  threshold = 5%   // Configurable drift threshold
-
-  For each goal:
-    totalAmount = sum(goal.portfolio.funds[].amount)
-    
-    For each fund allocation:
-      actualWeight = (fundAllocation.amount / totalAmount) * 100
-      drift = actualWeight - fundAllocation.weight   // target weight
-      
-      If abs(drift) >= threshold:
-        direction = drift > 0 ? "over" : "under"
-        Add alert: { fundName, goalName, currentWeight, targetWeight, drift, direction }
-  
-  Sort alerts by abs(drift) descending
+  1. Map client.riskProfile to model portfolio profile using mapping above
+  2. Look up the "default" category model portfolio for that profile
+  3. Get client's actual fund exposure (aggregated across all goals, see 8.1)
+  4. Build union of all fund IDs (from both actual and model)
+  5. For each fund:
+       actualWeight = client's actual aggregated weight (0 if fund not held)
+       modelWeight  = model portfolio target weight (0 if fund not in model)
+       drift = actualWeight - modelWeight
+       direction = abs(drift) < 1 ? "match" : drift > 0 ? "over" : "under"
+  6. overallDrift = sum(abs(drift)) / 2   // Halved because over+under cancel out
+  7. Status thresholds:
+       overallDrift ≤ 5%  → "aligned"
+       overallDrift ≤ 15% → "minor-drift"
+       overallDrift > 15% → "significant-drift"
+  8. Sort fund drifts by abs(drift) descending
 ```
 
 **Output:**
 ```typescript
-interface RebalanceAlert {
-  fundName: string;
+interface PortfolioDriftFund {
   fundId: string;
-  goalName: string;
-  currentWeight: number;    // Actual percentage
-  targetWeight: number;     // Target percentage
-  drift: number;            // Signed difference (positive = overweight)
-  direction: "over" | "under";
+  fundName: string;
+  category: string;
+  actualWeight: number;     // Client's actual allocation percentage
+  modelWeight: number;      // Model portfolio target percentage
+  drift: number;            // Signed difference (positive = overweight vs model)
+  direction: "over" | "under" | "match";  // "match" when abs(drift) < 1%
+}
+
+interface PortfolioDrift {
+  modelName: string;              // e.g., "Moderate Default"
+  modelRiskProfile: string;       // e.g., "Moderate"
+  overallDrift: number;           // Overall drift score (0-100%)
+  status: "aligned" | "minor-drift" | "significant-drift";
+  fundDrifts: PortfolioDriftFund[];  // Per-fund breakdown sorted by drift magnitude
 }
 ```
 
