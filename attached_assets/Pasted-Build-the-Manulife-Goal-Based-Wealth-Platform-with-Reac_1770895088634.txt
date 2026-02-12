@@ -1,0 +1,71 @@
+Build the "Manulife Goal-Based Wealth Platform" with React, Recharts, and Framer Motion.
+
+Prompt:
+
+Build a high-fidelity, interactive Financial Advisor Dashboard.
+
+1. Brand Identity (Strict):
+
+Primary Green: #0C7143 (Manulife Corporate Green - Headers/Sidebars).
+
+Action Green: #00A758 (Buttons/Highlights).
+
+Alert Red: #D9534F (For "Off Track" goals).
+
+Font: Sans-serif (Inter/Roboto), clean and corporate.
+
+Layout: Sidebar navigation (Left), Main Stage (Center), AI Assistant (Right).
+
+2. The "Entry Gate" Modal (App Launch):
+
+When the app loads, show a glassmorphism modal asking: "Select Client Journey"
+
+Option A: "New Client Discovery" -> (Leads to Goal Wizard).
+
+Option B: "Existing Portfolio Review" -> (Leads to Dashboard).
+
+3. Core Module: The Goal Simulator ("The Three Levers"):
+
+Create a component called GoalSimulator.
+
+Visual: A large Area Chart showing "Projected Wealth" vs "Goal Target".
+
+The Levers (Interactive Sliders below chart):
+
+"Monthly Savings": Range $0 - $50k. (Moving this up steepens the curve).
+
+"Time Horizon": Range 2026 - 2050. (Moving this right extends the landing zone).
+
+"Risk Profile": Steps [Conservative, Balanced, Growth, Aggressive]. (Changing this increases volatility bounds but steepens the curve).
+
+The Output: A dynamic badge that says "Probability of Success: [X]%". If X < 75%, turn the badge Red. If > 75%, turn it Green.
+
+4. Core Module: The "Portfolio Wrapper" (Psychology Shift):
+
+In the PortfolioBuilder section, do NOT show a list of funds first.
+
+Show a "Product Card" view:
+
+Title: "Manulife Asia Growth Basket".
+
+Big Metric: "Target Return: 8-10%".
+
+DCA Toggle: A switch labeled "Enable Automatic Monthly Investment (DCA)". When toggled ON, show a "benefit" tooltip: "Reduces volatility risk by 30%."
+
+Add a button: "View Underlying Holdings" (Accordion). Only when clicked does it reveal the list of mutual funds.
+
+5. The AI Copilot (Right Sidebar):
+
+Title: "Advisor Talking Points".
+
+Logic:
+
+If Probability < 70%: Display "Talking Point: Discuss increasing monthly savings by $500 to get back on track."
+
+If Cash > 20%: Display "Talking Point: Inflation is eroding this cash. Recommend DCA into the Income Fund."
+
+6. Mock Data:
+
+Create a robust mockData.js with realistic Manulife fund names (e.g., "Manulife Global Franchise Fund", "Manulife Asia Pacific REIT").
+
+Ensure the chart data reacts to the sliders (use simple multipliers for the demo).
