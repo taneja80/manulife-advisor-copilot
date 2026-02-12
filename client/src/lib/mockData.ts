@@ -753,3 +753,208 @@ export function getClientWeightedReturns(client: Client): ClientReturns {
     threeYear: Math.round(wThreeYear * 10) / 10,
   };
 }
+
+export interface FundExposure {
+  fundId: string;
+  fundName: string;
+  category: string;
+  totalAmount: number;
+  weight: number;
+  expenseRatio: number;
+}
+
+export function getClientFundExposure(client: Client): FundExposure[] {
+  const fundMap = new Map<string, number>();
+  for (const goal of client.goals) {
+    for (const fa of goal.portfolio.funds) {
+      fundMap.set(fa.fundId, (fundMap.get(fa.fundId) || 0) + fa.amount);
+    }
+  }
+
+  let totalInvested = 0;
+  fundMap.forEach((v) => { totalInvested += v; });
+  if (totalInvested === 0) return [];
+
+  const exposures: FundExposure[] = [];
+  fundMap.forEach((amount, fundId) => {
+    const fund = getFundById(fundId);
+    if (!fund) return;
+    exposures.push({
+      fundId,
+      fundName: fund.name,
+      category: fund.category,
+      totalAmount: amount,
+      weight: Math.round((amount / totalInvested) * 1000) / 10,
+      expenseRatio: fund.expenseRatio,
+    });
+  });
+
+  return exposures.sort((a, b) => b.weight - a.weight);
+}
+
+export interface FeeAnalysis {
+  totalInvested: number;
+  weightedExpenseRatio: number;
+  annualFeeCost: number;
+  monthlyFeeCost: number;
+  feeBreakdown: { fundName: string; weight: number; expenseRatio: number; annualCost: number }[];
+  tenYearFeeDrag: number;
+}
+
+export function getClientFeeAnalysis(client: Client): FeeAnalysis {
+  const exposure = getClientFundExposure(client);
+  const totalInvested = exposure.reduce((s, e) => s + e.totalAmount, 0);
+  if (totalInvested === 0) {
+    return { totalInvested: 0, weightedExpenseRatio: 0, annualFeeCost: 0, monthlyFeeCost: 0, feeBreakdown: [], tenYearFeeDrag: 0 };
+  }
+
+  let weightedER = 0;
+  const breakdown: FeeAnalysis["feeBreakdown"] = [];
+  for (const e of exposure) {
+    const w = e.totalAmount / totalInvested;
+    weightedER += e.expenseRatio * w;
+    breakdown.push({
+      fundName: e.fundName,
+      weight: e.weight,
+      expenseRatio: e.expenseRatio,
+      annualCost: Math.round(e.totalAmount * (e.expenseRatio / 100)),
+    });
+  }
+
+  const annualFeeCost = Math.round(totalInvested * (weightedER / 100));
+  const tenYearDrag = Math.round(annualFeeCost * 10 * 1.5);
+
+  return {
+    totalInvested,
+    weightedExpenseRatio: Math.round(weightedER * 100) / 100,
+    annualFeeCost,
+    monthlyFeeCost: Math.round(annualFeeCost / 12),
+    feeBreakdown: breakdown.sort((a, b) => b.annualCost - a.annualCost),
+    tenYearFeeDrag: tenYearDrag,
+  };
+}
+
+export interface RebalanceAlert {
+  fundName: string;
+  fundId: string;
+  goalName: string;
+  currentWeight: number;
+  targetWeight: number;
+  drift: number;
+  direction: "over" | "under";
+}
+
+export function getClientRebalanceAlerts(client: Client, threshold = 5): RebalanceAlert[] {
+  const alerts: RebalanceAlert[] = [];
+
+  for (const goal of client.goals) {
+    const totalAmount = goal.portfolio.funds.reduce((s, f) => s + f.amount, 0);
+    if (totalAmount === 0) continue;
+
+    for (const fa of goal.portfolio.funds) {
+      const fund = getFundById(fa.fundId);
+      if (!fund) continue;
+
+      const actualWeight = (fa.amount / totalAmount) * 100;
+      const drift = actualWeight - fa.weight;
+
+      if (Math.abs(drift) >= threshold) {
+        alerts.push({
+          fundName: fund.name,
+          fundId: fa.fundId,
+          goalName: goal.name,
+          currentWeight: Math.round(actualWeight * 10) / 10,
+          targetWeight: fa.weight,
+          drift: Math.round(drift * 10) / 10,
+          direction: drift > 0 ? "over" : "under",
+        });
+      }
+    }
+  }
+
+  return alerts.sort((a, b) => Math.abs(b.drift) - Math.abs(a.drift));
+}
+
+export interface PerformancePoint {
+  date: string;
+  month: string;
+  portfolio: number;
+  benchmark: number;
+  balanced: number;
+}
+
+export function getClientPerformanceHistory(client: Client): PerformancePoint[] {
+  const joinYear = new Date(client.joinedDate).getFullYear();
+  const joinMonth = new Date(client.joinedDate).getMonth();
+  const currentYear = 2026;
+  const currentMonth = 1;
+
+  const totalMonths = (currentYear - joinYear) * 12 + (currentMonth - joinMonth);
+  const monthsToShow = Math.min(totalMonths, 36);
+
+  const annualReturn = (client.returns.ytd / 100);
+  const monthlyReturn = annualReturn / 12;
+
+  const pseiAnnual = 0.092;
+  const pseiMonthly = pseiAnnual / 12;
+  const balancedAnnual = 0.068;
+  const balancedMonthly = balancedAnnual / 12;
+
+  const points: PerformancePoint[] = [];
+  let portfolioVal = 100;
+  let benchmarkVal = 100;
+  let balancedVal = 100;
+
+  const seed = client.id.charCodeAt(1) * 17;
+
+  for (let i = 0; i <= monthsToShow; i++) {
+    const d = new Date(currentYear, currentMonth - monthsToShow + i, 1);
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    const noise1 = Math.sin(seed + i * 0.7) * 0.008;
+    const noise2 = Math.sin(seed + i * 1.3 + 2) * 0.012;
+    const noise3 = Math.sin(seed + i * 0.9 + 4) * 0.006;
+
+    if (i > 0) {
+      portfolioVal *= (1 + monthlyReturn + noise1);
+      benchmarkVal *= (1 + pseiMonthly + noise2);
+      balancedVal *= (1 + balancedMonthly + noise3);
+    }
+
+    points.push({
+      date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+      month: `${monthNames[d.getMonth()]} ${d.getFullYear().toString().slice(-2)}`,
+      portfolio: Math.round(portfolioVal * 100) / 100,
+      benchmark: Math.round(benchmarkVal * 100) / 100,
+      balanced: Math.round(balancedVal * 100) / 100,
+    });
+  }
+
+  return points;
+}
+
+export interface BenchmarkComparison {
+  clientYtd: number;
+  pseiYtd: number;
+  balancedYtd: number;
+  vsIndex: number;
+  vsBalanced: number;
+  outperformsIndex: boolean;
+  outperformsBalanced: boolean;
+}
+
+export function getClientBenchmarkComparison(client: Client): BenchmarkComparison {
+  const pseiYtd = 9.2;
+  const balancedYtd = 6.8;
+  const clientYtd = client.returns.ytd;
+
+  return {
+    clientYtd,
+    pseiYtd,
+    balancedYtd,
+    vsIndex: Math.round((clientYtd - pseiYtd) * 10) / 10,
+    vsBalanced: Math.round((clientYtd - balancedYtd) * 10) / 10,
+    outperformsIndex: clientYtd > pseiYtd,
+    outperformsBalanced: clientYtd > balancedYtd,
+  };
+}

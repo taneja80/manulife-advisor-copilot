@@ -27,6 +27,12 @@ A financial advisor dashboard built with React, Recharts, and Framer Motion for 
 6. **Model Portfolio System** - Backend API (`/api/model-portfolios`) with CRUD operations. 6 default portfolios across 3 risk profiles (Conservative, Moderate, Aggressive) and 4 categories (default, low_volatility, growth, aggressive_growth). Auto-assigned to new clients based on risk assessment.
 7. **Insights Hub** (`/insights`) - Cross-client intelligence: summary metrics, priority alerts, funding gap analysis, AUM allocation charts, client performance comparison, per-client AI recommendations
 8. **Dark Mode** - Full light/dark theme support
+9. **Portfolio Allocation Chart** - Donut chart on dashboard showing aggregated fund exposure across all goals with interactive tooltips and legend
+10. **Performance History Chart** - Area chart showing portfolio growth over time vs PSEi (9.2% annual) and balanced benchmark (6.8% annual) with deterministic monthly data points
+11. **Benchmark Comparison** - Bar chart comparing client YTD return vs PSEi and balanced fund with outperformance/underperformance indicators
+12. **Fee Impact Analysis** - Card showing weighted expense ratio, annual/monthly fee cost in PHP, 10-year fee drag projection, and per-fund fee breakdown
+13. **Rebalancing Alerts** - Drift detection when actual portfolio weight deviates from target weight by >5%; sorted by drift magnitude with over/under direction
+14. **Meeting Prep** - Dialog modal triggered by "Prep Meeting" button with one-page client summary: AUM, returns, goals status, risk metrics, expense ratio, and AI-generated talking points covering performance vs benchmarks, off-track goals, rebalancing needs, cash drag, and inflation
 
 ## Risk Profiling
 - 6 multiple-choice questions scored 1-3 (conservative to aggressive)
