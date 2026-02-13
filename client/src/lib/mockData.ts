@@ -1,78 +1,24 @@
-export interface Fund {
-  id: string;
-  name: string;
-  category: string;
-  returnRate: string;
-  risk: string;
-  allocation: number;
-  ytdReturn: number;
-  expenseRatio: number;
-  volatility: number;
-  maxDrawdown: number;
-  sharpeRatio: number;
-}
+import {
+  Fund, Goal, Client, GoalPortfolio, GoalFundAllocation, GoalReturns, ClientReturns, ProductBasket, RiskMetrics, FundExposure, FeeAnalysis
+} from "@shared/schema";
 
-export interface GoalPortfolio {
-  funds: GoalFundAllocation[];
-  totalInvested: number;
-}
+export type {
+  Fund, Goal, Client, GoalPortfolio, GoalFundAllocation, GoalReturns, ClientReturns, ProductBasket, RiskMetrics, FundExposure, FeeAnalysis
+};
 
-export interface GoalFundAllocation {
-  fundId: string;
-  weight: number;
-  amount: number;
-}
 
-export interface GoalReturns {
-  ytd: number;
-  oneYear: number;
-  threeYear: number;
-}
 
-export interface Goal {
-  id: string;
-  name: string;
-  type: string;
-  targetAmount: number;
-  currentAmount: number;
-  targetDate: string;
-  probability: number;
-  status: "on-track" | "off-track" | "ahead";
-  riskProfile: string;
-  portfolio: GoalPortfolio;
-  returns: GoalReturns;
-  monthlyContribution: number;
-}
 
-export interface ClientReturns {
-  ytd: number;
-  oneYear: number;
-  threeYear: number;
-}
 
-export interface Client {
-  id: string;
-  name: string;
-  age: number;
-  riskProfile: string;
-  totalPortfolio: number;
-  cashHoldings: number;
-  monthlyIncome: number;
-  goals: Goal[];
-  returns: ClientReturns;
-  needsAction: boolean;
-  actionReason?: string;
-  joinedDate: string;
-}
 
-export interface ProductBasket {
-  id: string;
-  title: string;
-  targetReturn: string;
-  riskLevel: string;
-  description: string;
-  funds: Fund[];
-}
+
+
+
+
+
+
+
+
 
 export const manulifeFunds: Fund[] = [
   {
@@ -661,11 +607,7 @@ export const riskColors: Record<string, string> = {
   Aggressive: "#D9534F",
 };
 
-export interface RiskMetrics {
-  volatility: number;
-  maxDrawdown: number;
-  sharpeRatio: number;
-}
+
 
 export function getGoalRiskMetrics(goal: Goal): RiskMetrics {
   const totalWeight = goal.portfolio.funds.reduce((s, f) => s + f.weight, 0);
@@ -754,14 +696,7 @@ export function getClientWeightedReturns(client: Client): ClientReturns {
   };
 }
 
-export interface FundExposure {
-  fundId: string;
-  fundName: string;
-  category: string;
-  totalAmount: number;
-  weight: number;
-  expenseRatio: number;
-}
+
 
 export function getClientFundExposure(client: Client): FundExposure[] {
   const fundMap = new Map<string, number>();
@@ -790,15 +725,6 @@ export function getClientFundExposure(client: Client): FundExposure[] {
   });
 
   return exposures.sort((a, b) => b.weight - a.weight);
-}
-
-export interface FeeAnalysis {
-  totalInvested: number;
-  weightedExpenseRatio: number;
-  annualFeeCost: number;
-  monthlyFeeCost: number;
-  feeBreakdown: { fundName: string; weight: number; expenseRatio: number; annualCost: number }[];
-  tenYearFeeDrag: number;
 }
 
 export function getClientFeeAnalysis(client: Client): FeeAnalysis {

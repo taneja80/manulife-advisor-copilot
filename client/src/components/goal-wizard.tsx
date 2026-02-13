@@ -151,27 +151,33 @@ function getQuestionsForGoal(goalId: string): QuestionConfig[] {
       return [
         { key: "childAge", label: "Child's Current Age", type: "slider", min: 0, max: 17, step: 1, format: "number", defaultValue: 5 },
         { key: "collegeAge", label: "Age When Entering College", type: "slider", min: 16, max: 20, step: 1, format: "number", defaultValue: 18 },
-        { key: "schoolType", label: "Type of School", type: "select", options: [
-          { value: "public", label: "State University (e.g., UP, PUP)" },
-          { value: "private", label: "Private University (e.g., UST, Ateneo, La Salle)" },
-          { value: "international", label: "International / Abroad" },
-        ], defaultValue: "private" },
+        {
+          key: "schoolType", label: "Type of School", type: "select", options: [
+            { value: "public", label: "State University (e.g., UP, PUP)" },
+            { value: "private", label: "Private University (e.g., UST, Ateneo, La Salle)" },
+            { value: "international", label: "International / Abroad" },
+          ], defaultValue: "private"
+        },
         { key: "yearsOfStudy", label: "Years of Study", type: "slider", min: 2, max: 8, step: 1, format: "number", defaultValue: 4 },
       ];
     case "property":
       return [
-        { key: "propertyType", label: "Property Type", type: "select", options: [
-          { value: "condo_studio", label: "Condo - Studio / 1BR" },
-          { value: "condo_family", label: "Condo - 2BR / 3BR" },
-          { value: "townhouse", label: "Townhouse" },
-          { value: "house_lot", label: "House & Lot" },
-        ], defaultValue: "condo_family" },
-        { key: "location", label: "Location", type: "select", options: [
-          { value: "metro_manila", label: "Metro Manila" },
-          { value: "nearby_provinces", label: "Cavite / Laguna / Bulacan / Rizal" },
-          { value: "cebu_davao", label: "Cebu / Davao" },
-          { value: "provincial", label: "Other Provincial Areas" },
-        ], defaultValue: "metro_manila" },
+        {
+          key: "propertyType", label: "Property Type", type: "select", options: [
+            { value: "condo_studio", label: "Condo - Studio / 1BR" },
+            { value: "condo_family", label: "Condo - 2BR / 3BR" },
+            { value: "townhouse", label: "Townhouse" },
+            { value: "house_lot", label: "House & Lot" },
+          ], defaultValue: "condo_family"
+        },
+        {
+          key: "location", label: "Location", type: "select", options: [
+            { value: "metro_manila", label: "Metro Manila" },
+            { value: "nearby_provinces", label: "Cavite / Laguna / Bulacan / Rizal" },
+            { value: "cebu_davao", label: "Cebu / Davao" },
+            { value: "provincial", label: "Other Provincial Areas" },
+          ], defaultValue: "metro_manila"
+        },
         { key: "yearsToTarget", label: "When Do You Plan to Buy? (Years from now)", type: "slider", min: 1, max: 20, step: 1, format: "number", defaultValue: 5 },
       ];
     case "medical":
@@ -183,12 +189,14 @@ function getQuestionsForGoal(goalId: string): QuestionConfig[] {
     case "growth":
       return [
         { key: "currentSavings", label: "Current Savings / Investment Amount", type: "slider", min: 0, max: 50000000, step: 100000, format: "php", defaultValue: 1000000 },
-        { key: "targetMultiplier", label: "Growth Target (Multiply by)", type: "select", options: [
-          { value: "2", label: "2x (Double)" },
-          { value: "3", label: "3x (Triple)" },
-          { value: "5", label: "5x" },
-          { value: "10", label: "10x" },
-        ], defaultValue: "3" },
+        {
+          key: "targetMultiplier", label: "Growth Target (Multiply by)", type: "select", options: [
+            { value: "2", label: "2x (Double)" },
+            { value: "3", label: "3x (Triple)" },
+            { value: "5", label: "5x" },
+            { value: "10", label: "10x" },
+          ], defaultValue: "3"
+        },
         { key: "yearsToGrow", label: "Investment Horizon (Years)", type: "slider", min: 3, max: 30, step: 1, format: "number", defaultValue: 10 },
       ];
     case "saving":
@@ -324,7 +332,7 @@ function calculateBaseTarget(goalId: string, answers: Record<string, number | st
 }
 
 interface GoalWizardProps {
-  onComplete: () => void;
+  onComplete: (data: any) => void;
   onCancel?: () => void;
   clientName?: string;
   isNewClient?: boolean;
@@ -394,27 +402,27 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
   const getStepLabels = () => {
     const clientSteps = isNewClient
       ? [
-          { title: "Client Information", subtitle: "Enter your client's basic details" },
-          { title: "Risk Assessment", subtitle: "6 questions to determine investment profile" },
-          { title: "Risk Profile Result", subtitle: "Based on the assessment" },
-        ]
+        { title: "Client Information", subtitle: "Enter your client's basic details" },
+        { title: "Risk Assessment", subtitle: "6 questions to determine investment profile" },
+        { title: "Risk Profile Result", subtitle: "Based on the assessment" },
+      ]
       : [];
 
     const goalSteps =
       knowsTarget === false
         ? [
-            { title: "Choose Your Goal", subtitle: "What is your client saving for?" },
-            { title: "Target Amount", subtitle: "Does your client have a target in mind?" },
-            { title: "Let's Calculate", subtitle: "Answer a few questions to estimate the target" },
-            { title: "Your Target", subtitle: "Here's the inflation-adjusted amount" },
-            { title: "Summary", subtitle: "Review and confirm the goal" },
-          ]
+          { title: "Choose Your Goal", subtitle: "What is your client saving for?" },
+          { title: "Target Amount", subtitle: "Does your client have a target in mind?" },
+          { title: "Let's Calculate", subtitle: "Answer a few questions to estimate the target" },
+          { title: "Your Target", subtitle: "Here's the inflation-adjusted amount" },
+          { title: "Summary", subtitle: "Review and confirm the goal" },
+        ]
         : [
-            { title: "Choose Your Goal", subtitle: "What is your client saving for?" },
-            { title: "Target Amount", subtitle: "Does your client have a target in mind?" },
-            { title: "Set Your Target", subtitle: "Enter the target amount and timeline" },
-            { title: "Summary", subtitle: "Review and confirm the goal" },
-          ];
+          { title: "Choose Your Goal", subtitle: "What is your client saving for?" },
+          { title: "Target Amount", subtitle: "Does your client have a target in mind?" },
+          { title: "Set Your Target", subtitle: "Enter the target amount and timeline" },
+          { title: "Summary", subtitle: "Review and confirm the goal" },
+        ];
 
     return [...clientSteps, ...goalSteps];
   };
@@ -611,11 +619,10 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
                 <button
                   key={optIndex}
                   onClick={() => setRiskAnswers((prev) => ({ ...prev, [q.id]: opt.score }))}
-                  className={`w-full text-left p-3 rounded-lg border text-sm transition-colors ${
-                    isSelected
+                  className={`w-full text-left p-3 rounded-lg border text-sm transition-colors ${isSelected
                       ? "border-[#00A758] bg-[#00A758]/5 font-medium"
                       : "border-border"
-                  }`}
+                    }`}
                   data-testid={`option-${q.id}-${optIndex}`}
                 >
                   {opt.label}
@@ -633,9 +640,9 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
     const profileColor = riskProfileColors[calculatedRisk.profile];
     const portfolioFundNames = assignedPortfolio
       ? assignedPortfolio.funds.map((f) => {
-          const fund = manulifeFunds.find((mf) => mf.id === f.fundId);
-          return { name: fund?.name || f.fundId, weight: f.weight, category: fund?.category || "" };
-        })
+        const fund = manulifeFunds.find((mf) => mf.id === f.fundId);
+        return { name: fund?.name || f.fundId, weight: f.weight, category: fund?.category || "" };
+      })
       : [];
 
     return (
@@ -723,11 +730,10 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
                 setKnowsTarget(null);
                 setQuestionAnswers({});
               }}
-              className={`flex flex-col items-center gap-2 p-4 rounded-lg border transition-all ${
-                selectedGoal === goal.id
+              className={`flex flex-col items-center gap-2 p-4 rounded-lg border transition-all ${selectedGoal === goal.id
                   ? "border-[#00A758] bg-[#00A758]/5"
                   : "border-border"
-              }`}
+                }`}
               data-testid={`button-goal-${goal.id}`}
             >
               <goal.icon className="w-7 h-7" style={{ color: goal.color }} />
@@ -758,11 +764,10 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
               onClick={() => setKnowsTarget(true)}
-              className={`flex flex-col items-center gap-3 p-6 rounded-lg border transition-all ${
-                knowsTarget === true
+              className={`flex flex-col items-center gap-3 p-6 rounded-lg border transition-all ${knowsTarget === true
                   ? "border-[#00A758] bg-[#00A758]/5"
                   : "border-border"
-              }`}
+                }`}
               data-testid="button-knows-target-yes"
             >
               <Target className="w-8 h-8 text-[#00A758]" />
@@ -776,11 +781,10 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
 
             <button
               onClick={() => setKnowsTarget(false)}
-              className={`flex flex-col items-center gap-3 p-6 rounded-lg border transition-all ${
-                knowsTarget === false
+              className={`flex flex-col items-center gap-3 p-6 rounded-lg border transition-all ${knowsTarget === false
                   ? "border-[#00A758] bg-[#00A758]/5"
                   : "border-border"
-              }`}
+                }`}
               data-testid="button-knows-target-no"
             >
               <HelpCircle className="w-8 h-8 text-[#2E86AB]" />
@@ -1001,9 +1005,9 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
       const riskProfile = isNewClient && calculatedRisk ? calculatedRisk.profile : selectedRisk;
       const portfolioFundNames = assignedPortfolio
         ? assignedPortfolio.funds.map((f) => {
-            const fund = manulifeFunds.find((mf) => mf.id === f.fundId);
-            return { name: fund?.name || f.fundId, weight: f.weight };
-          })
+          const fund = manulifeFunds.find((mf) => mf.id === f.fundId);
+          return { name: fund?.name || f.fundId, weight: f.weight };
+        })
         : [];
 
       return (
@@ -1119,11 +1123,10 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
                   <button
                     key={risk}
                     onClick={() => setSelectedRisk(risk)}
-                    className={`p-3 rounded-lg border text-center transition-all ${
-                      selectedRisk === risk
+                    className={`p-3 rounded-lg border text-center transition-all ${selectedRisk === risk
                         ? "border-[#00A758] bg-[#00A758]/5"
                         : "border-border"
-                    }`}
+                      }`}
                     data-testid={`button-risk-${risk.toLowerCase()}`}
                   >
                     <Shield className="w-5 h-5 mx-auto mb-1" style={{ color: riskProfileColors[risk] }} />
@@ -1145,6 +1148,56 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
     if (isNewClient && step === 1) return renderRiskAssessmentStep();
     if (isNewClient && step === 2) return renderRiskResultStep();
     return renderGoalStep();
+  };
+
+  const handleFinalSubmit = () => {
+    // Construct the goal object
+    const riskProfile = isNewClient && calculatedRisk ? calculatedRisk.profile : selectedRisk;
+
+    // We'll calculate a simple initial portfolio breakdown based on the assigned model
+    // In a real app, this would be more granular
+    const newGoal = {
+      name: `${goalTypes.find(g => g.id === selectedGoal)?.label || "New"} Goal`,
+      type: selectedGoal,
+      targetAmount: finalTarget,
+      currentAmount: 0, // Initial amount could be gathered
+      targetDate: String(timeHorizon),
+      probability: 85, // Default high probability for new plan
+      status: "on-track",
+      riskProfile: riskProfile,
+      monthlyContribution: 0, // Could be gathered
+      portfolio: assignedPortfolio ? {
+        totalInvested: 0,
+        funds: assignedPortfolio.funds.map(f => ({
+          fundId: f.fundId,
+          weight: f.weight,
+          amount: 0
+        }))
+      } : { totalInvested: 0, funds: [] },
+      returns: { ytd: 0, oneYear: 0, threeYear: 0 }
+    };
+
+    if (isNewClient) {
+      // Return full client structure
+      const newClient = {
+        name: clientInfo.name,
+        age: Number(clientInfo.age),
+        // email: clientInfo.email,
+        // phone: clientInfo.phone,
+        monthlyIncome: Number(clientInfo.monthlyIncome || 0),
+        riskProfile: riskProfile,
+        totalPortfolio: 0,
+        cashHoldings: 0,
+        returns: { ytd: 0, oneYear: 0, threeYear: 0 },
+        needsAction: false,
+        joinedDate: new Date().toISOString().split('T')[0],
+        goals: [newGoal]
+      };
+      onComplete(newClient);
+    } else {
+      // Just return the goal
+      onComplete(newGoal);
+    }
   };
 
   return (
@@ -1170,8 +1223,8 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
           {isNewClient
             ? "Complete the risk assessment and set up their first goal"
             : clientName
-            ? `Add a new goal for ${clientName}`
-            : "Build a personalized wealth plan for your client"}
+              ? `Add a new goal for ${clientName}`
+              : "Build a personalized wealth plan for your client"}
         </p>
       </div>
 
@@ -1179,11 +1232,10 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
         {stepLabels.map((_, i) => (
           <div key={i} className="flex items-center gap-1">
             <div
-              className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors ${
-                i <= step
+              className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors ${i <= step
                   ? "bg-[#00A758] text-white"
                   : "bg-muted text-muted-foreground"
-              }`}
+                }`}
               data-testid={`step-indicator-${i}`}
             >
               {i < step ? <Check className="w-4 h-4" /> : i + 1}
@@ -1218,7 +1270,7 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
             {isLastStep ? (
               <Button
                 className="bg-[#00A758] border-[#00A758]"
-                onClick={onComplete}
+                onClick={handleFinalSubmit}
                 data-testid="button-wizard-complete"
               >
                 <Check className="w-4 h-4 mr-1" />

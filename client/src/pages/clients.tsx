@@ -6,7 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { clients, formatPHP, riskColors, getClientRiskMetrics } from "@/lib/mockData";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatPHP, riskColors, getClientRiskMetrics } from "@/lib/mockData";
+import { useClients } from "@/hooks/useClients";
 import {
   Search,
   UserPlus,
@@ -21,6 +23,7 @@ import {
   Activity,
   X,
 } from "lucide-react";
+import { ActionQueue } from "@/components/action-queue";
 
 interface ClientsPageProps {
   onAddNewClient?: () => void;
@@ -32,6 +35,7 @@ export default function ClientsPage({ onAddNewClient }: ClientsPageProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { data: clients = [], isLoading, isError } = useClients();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -42,6 +46,26 @@ export default function ClientsPage({ onAddNewClient }: ClientsPageProps) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
+        </div>
+        {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-20" />)}
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6">
+        <p className="text-sm text-destructive">Failed to load clients. Please try again.</p>
+      </div>
+    );
+  }
 
   const sortedClients = [...clients].sort((a, b) => {
     if (a.needsAction && !b.needsAction) return -1;
@@ -90,6 +114,8 @@ export default function ClientsPage({ onAddNewClient }: ClientsPageProps) {
           Add New Client
         </Button>
       </div>
+
+      <ActionQueue />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card>

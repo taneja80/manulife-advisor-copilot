@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { GoalSimulator } from "@/components/goal-simulator";
-import { AICopilot } from "@/components/ai-copilot";
-import { clients } from "@/lib/mockData";
+import { DoraChat } from "@/components/dora-chat";
+import { useClients } from "@/hooks/useClients";
 
 export default function SimulatorPage() {
   const [simulatorSettings, setSimulatorSettings] = useState({
@@ -18,6 +18,7 @@ export default function SimulatorPage() {
     []
   );
 
+  const { data: clients = [] } = useClients();
   const defaultClient = clients[0];
 
   return (
@@ -25,14 +26,14 @@ export default function SimulatorPage() {
       <div className="flex-1 overflow-y-auto p-6">
         <GoalSimulator onSettingsChange={handleSettingsChange} />
       </div>
-      <div className="hidden xl:block w-[300px] border-l p-4 overflow-y-auto bg-card/50">
-        <AICopilot
-          client={defaultClient}
-          probability={simulatorSettings.probability}
-          monthlySavings={simulatorSettings.monthlySavings}
-          riskProfile={simulatorSettings.riskProfile}
-        />
-      </div>
+      {defaultClient && (
+        <div className="hidden xl:block w-[320px] border-l p-4 overflow-y-auto bg-card/50 shrink-0">
+          <DoraChat
+            clientId={defaultClient.id}
+            clientName={defaultClient.name}
+          />
+        </div>
+      )}
     </div>
   );
 }

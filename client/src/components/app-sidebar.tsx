@@ -3,6 +3,7 @@ import {
   BarChart3,
   Users,
   Settings,
+  Home,
 } from "lucide-react";
 import {
   Sidebar,
@@ -19,8 +20,13 @@ import {
 
 const navItems = [
   {
-    title: "Clients",
+    title: "Home",
     url: "/",
+    icon: Home,
+  },
+  {
+    title: "Clients",
+    url: "/clients-list",
     icon: Users,
   },
   {
@@ -34,7 +40,8 @@ export function AppSidebar() {
   const [location, setLocation] = useLocation();
 
   const isActive = (url: string) => {
-    if (url === "/") return location === "/" || location === "/clients";
+    if (url === "/") return location === "/";
+    if (url === "/clients-list") return location === "/clients-list" || location.startsWith("/clients/");
     return location.startsWith(url);
   };
 
@@ -81,7 +88,12 @@ export function AppSidebar() {
       <SidebarFooter className="p-4">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton data-testid="nav-settings">
+            <SidebarMenuButton
+              onClick={() => setLocation("/settings")}
+              data-active={isActive("/settings")}
+              className={isActive("/settings") ? "bg-sidebar-accent font-medium" : ""}
+              data-testid="nav-settings"
+            >
               <Settings className="w-4 h-4" />
               <span>Settings</span>
             </SidebarMenuButton>

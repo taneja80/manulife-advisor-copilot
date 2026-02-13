@@ -44,16 +44,23 @@ import {
   type GoalFundAllocation,
 } from "@/lib/mockData";
 
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+
 interface GoalPortfolioEditorProps {
   goal: Goal;
+  clientName: string;
   onUpdate?: (goalId: string, funds: GoalFundAllocation[]) => void;
 }
 
-export function GoalPortfolioEditor({ goal, onUpdate }: GoalPortfolioEditorProps) {
+export function GoalPortfolioEditor({ goal, clientName, onUpdate }: GoalPortfolioEditorProps) {
+  const { toast } = useToast();
   const [funds, setFunds] = useState<GoalFundAllocation[]>(
     goal.portfolio.funds.map((f) => ({ ...f }))
   );
   const [hasChanges, setHasChanges] = useState(false);
+  const [consentGiven, setConsentGiven] = useState(false);
+  const [isExecuting, setIsExecuting] = useState(false);
 
   const totalWeight = funds.reduce((sum, f) => sum + f.weight, 0);
   const isValid = totalWeight === 100;
@@ -71,6 +78,7 @@ export function GoalPortfolioEditor({ goal, onUpdate }: GoalPortfolioEditorProps
       )
     );
     setHasChanges(true);
+    setConsentGiven(false); // Reset consent on change
   };
 
   const handleAddFund = (fundId: string) => {
@@ -79,21 +87,74 @@ export function GoalPortfolioEditor({ goal, onUpdate }: GoalPortfolioEditorProps
       { fundId, weight: 0, amount: 0 },
     ]);
     setHasChanges(true);
+    setConsentGiven(false);
   };
 
   const handleRemoveFund = (fundId: string) => {
     setFunds((prev) => prev.filter((f) => f.fundId !== fundId));
     setHasChanges(true);
+    setConsentGiven(false);
   };
 
   const handleReset = () => {
     setFunds(goal.portfolio.funds.map((f) => ({ ...f })));
     setHasChanges(false);
+    setConsentGiven(false);
   };
 
   const handleSave = () => {
     onUpdate?.(goal.id, funds);
     setHasChanges(false);
+  };
+
+  const handleGetConsent = () => {
+    if (hasChanges) {
+      toast({
+        title: "Save Changes First",
+        description: "Please save your portfolio changes before getting consent.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // In a real app, this might trigger a digital signature flow
+    if (window.confirm(`Confirm that you have discussed the "${goal.name}" portfolio with ${clientName} and received their verbal/written consent?`)) {
+      setConsentGiven(true);
+      toast({
+        title: "Consent Recorded",
+        description: `Consent recorded for ${clientName}. You may now execute the trade.`,
+      });
+    }
+  };
+
+  const handleExecuteTrade = async () => {
+    setIsExecuting(true);
+    try {
+      await apiRequest("POST", "/api/trade/execute", {
+        goalId: goal.id,
+        clientName,
+        portfolio: {
+          name: goal.name,
+          funds,
+          totalInvested: goal.portfolio.totalInvested
+        }
+      });
+
+      toast({
+        title: "Trade Instructions Sent",
+        description: `Email sent to ${clientName} with trade details for execution.`,
+        variant: "default", // Using default variant with a success icon styling if needed, or check if 'success' variant exists in toast
+      });
+      setConsentGiven(false); // Reset
+    } catch (error) {
+      toast({
+        title: "Execution Failed",
+        description: "Failed to send trade instructions. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExecuting(false);
+    }
   };
 
   return (
@@ -114,9 +175,33 @@ export function GoalPortfolioEditor({ goal, onUpdate }: GoalPortfolioEditorProps
               </span>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-lg font-bold">{goal.probability}%</p>
-            <p className="text-[11px] text-muted-foreground">Probability</p>
+          <div className="flex items-center gap-2">
+            {!consentGiven ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleGetConsent}
+                className="gap-1.5"
+                disabled={hasChanges} // Force save first
+              >
+                <Check className="w-3.5 h-3.5" />
+                Get Consent
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                className="bg-[#00A758] hover:bg-[#008a47] gap-1.5"
+                onClick={handleExecuteTrade}
+                disabled={isExecuting || hasChanges}
+              >
+                <TrendingUp className="w-3.5 h-3.5" />
+                {isExecuting ? "Sending..." : "Execute Trade"}
+              </Button>
+            )}
+            <div className="text-right ml-2 border-l pl-2">
+              <p className="text-lg font-bold">{goal.probability}%</p>
+              <p className="text-[11px] text-muted-foreground">Probability</p>
+            </div>
           </div>
         </div>
       </CardHeader>

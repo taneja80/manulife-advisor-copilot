@@ -1,7 +1,9 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   BarChart,
   Bar,
@@ -15,12 +17,12 @@ import {
   Cell,
 } from "recharts";
 import {
-  clients,
   formatPHP,
   riskColors,
   getFundById,
   type Goal,
 } from "@/lib/mockData";
+import { useClients } from "@/hooks/useClients";
 import {
   AlertTriangle,
   TrendingUp,
@@ -38,64 +40,6 @@ import {
 } from "lucide-react";
 
 const COLORS = ["#00A758", "#0C7143", "#2E86AB", "#F59E0B", "#8B5CF6", "#D9534F"];
-
-const allGoals: Goal[] = clients.flatMap((c) => c.goals);
-const totalAUM = clients.reduce((sum, c) => sum + c.totalPortfolio, 0);
-const totalInvested = allGoals.reduce((sum, g) => sum + g.portfolio.totalInvested, 0);
-const offTrackGoals = allGoals.filter((g) => g.status === "off-track");
-const aheadGoals = allGoals.filter((g) => g.status === "ahead");
-const avgProbability = Math.round(allGoals.reduce((sum, g) => sum + g.probability, 0) / allGoals.length);
-
-const fundExposure: Record<string, { name: string; amount: number; category: string }> = {};
-allGoals.forEach((g) => {
-  g.portfolio.funds.forEach((f) => {
-    const fund = getFundById(f.fundId);
-    if (fund) {
-      if (!fundExposure[f.fundId]) {
-        fundExposure[f.fundId] = { name: fund.name.replace("Manulife ", ""), amount: 0, category: fund.category };
-      }
-      fundExposure[f.fundId].amount += f.amount;
-    }
-  });
-});
-
-const allocationData = Object.values(fundExposure)
-  .sort((a, b) => b.amount - a.amount)
-  .map((f) => ({
-    name: f.name.replace(" Fund", ""),
-    value: Math.round((f.amount / totalInvested) * 100),
-    amount: f.amount,
-    category: f.category,
-  }));
-
-const clientPerformance = clients.map((c) => ({
-  name: c.name.split(" ")[0],
-  ytd: c.returns.ytd,
-  oneYear: c.returns.oneYear,
-  threeYear: c.returns.threeYear,
-  portfolio: c.totalPortfolio,
-}));
-
-const fundingGaps = allGoals
-  .filter((g) => {
-    const yearsLeft = parseInt(g.targetDate) - 2026;
-    if (yearsLeft <= 0) return false;
-    const needed = (g.targetAmount - g.currentAmount) / (yearsLeft * 12);
-    return needed > g.monthlyContribution;
-  })
-  .map((g) => {
-    const yearsLeft = parseInt(g.targetDate) - 2026;
-    const needed = Math.round((g.targetAmount - g.currentAmount) / (yearsLeft * 12));
-    const gap = needed - g.monthlyContribution;
-    const client = clients.find((c) => c.goals.some((cg) => cg.id === g.id));
-    return { goal: g, client, needed, gap, yearsLeft };
-  })
-  .sort((a, b) => b.gap - a.gap);
-
-const rebalancingOpps = clients.filter((c) => {
-  const cashPct = (c.cashHoldings / c.totalPortfolio) * 100;
-  return cashPct > 20 || c.needsAction;
-});
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -115,6 +59,99 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function AnalyticsPage() {
   const [, setLocation] = useLocation();
+  const { data: clients = [], isLoading } = useClients();
+
+  const analytics = useMemo(() => {
+    if (clients.length === 0) return null;
+
+    const allGoals: Goal[] = clients.flatMap((c) => c.goals);
+    const totalAUM = clients.reduce((sum, c) => sum + c.totalPortfolio, 0);
+    const totalInvested = allGoals.reduce((sum, g) => sum + g.portfolio.totalInvested, 0);
+    const offTrackGoals = allGoals.filter((g) => g.status === "off-track");
+    const aheadGoals = allGoals.filter((g) => g.status === "ahead");
+    const avgProbability = allGoals.length > 0
+      ? Math.round(allGoals.reduce((sum, g) => sum + g.probability, 0) / allGoals.length)
+      : 0;
+
+    const fundExposure: Record<string, { name: string; amount: number; category: string }> = {};
+    allGoals.forEach((g) => {
+      g.portfolio.funds.forEach((f) => {
+        const fund = getFundById(f.fundId);
+        if (fund) {
+          if (!fundExposure[f.fundId]) {
+            fundExposure[f.fundId] = { name: fund.name.replace("Manulife ", ""), amount: 0, category: fund.category };
+          }
+          fundExposure[f.fundId].amount += f.amount;
+        }
+      });
+    });
+
+    const allocationData = Object.values(fundExposure)
+      .sort((a, b) => b.amount - a.amount)
+      .map((f) => ({
+        name: f.name.replace(" Fund", ""),
+        value: totalInvested > 0 ? Math.round((f.amount / totalInvested) * 100) : 0,
+        amount: f.amount,
+        category: f.category,
+      }));
+
+    const clientPerformance = clients.map((c) => ({
+      name: c.name.split(" ")[0],
+      ytd: c.returns.ytd,
+      oneYear: c.returns.oneYear,
+      threeYear: c.returns.threeYear,
+      portfolio: c.totalPortfolio,
+    }));
+
+    const fundingGaps = allGoals
+      .filter((g) => {
+        const yearsLeft = parseInt(g.targetDate) - 2026;
+        if (yearsLeft <= 0) return false;
+        const needed = (g.targetAmount - g.currentAmount) / (yearsLeft * 12);
+        return needed > g.monthlyContribution;
+      })
+      .map((g) => {
+        const yearsLeft = parseInt(g.targetDate) - 2026;
+        const needed = Math.round((g.targetAmount - g.currentAmount) / (yearsLeft * 12));
+        const gap = needed - g.monthlyContribution;
+        const client = clients.find((c) => c.goals.some((cg) => cg.id === g.id));
+        return { goal: g, client, needed, gap, yearsLeft };
+      })
+      .sort((a, b) => b.gap - a.gap);
+
+    const rebalancingOpps = clients.filter((c) => {
+      const cashPct = (c.cashHoldings / c.totalPortfolio) * 100;
+      return cashPct > 20 || c.needsAction;
+    });
+
+    return {
+      allGoals, totalAUM, totalInvested, offTrackGoals, aheadGoals, avgProbability,
+      allocationData, clientPerformance, fundingGaps, rebalancingOpps,
+    };
+  }, [clients]);
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <Skeleton className="h-8 w-56" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-20" />)}
+        </div>
+        <Skeleton className="h-48" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="h-80" />
+          <Skeleton className="h-80" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!analytics) return null;
+
+  const {
+    allGoals, totalAUM, offTrackGoals, aheadGoals, avgProbability,
+    allocationData, clientPerformance, fundingGaps, rebalancingOpps,
+  } = analytics;
 
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-6">

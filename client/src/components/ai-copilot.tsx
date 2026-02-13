@@ -14,8 +14,11 @@ import {
 } from "lucide-react";
 import { formatPHP, type Client } from "@/lib/mockData";
 
-interface AICopilotProps {
+export interface AICopilotProps {
   client: Client;
+  probability?: number;
+  monthlySavings?: number;
+  riskProfile?: string;
 }
 
 interface Insight {
@@ -37,9 +40,9 @@ export function AICopilot({ client }: AICopilotProps) {
 
   const weightedReturn = totalInvested > 0
     ? client.goals.reduce((sum, g) => {
-        const weight = g.portfolio.totalInvested / totalInvested;
-        return sum + g.returns.ytd * weight;
-      }, 0)
+      const weight = g.portfolio.totalInvested / totalInvested;
+      return sum + g.returns.ytd * weight;
+    }, 0)
     : 0;
 
   const insights: Insight[] = [];
@@ -108,11 +111,10 @@ export function AICopilot({ client }: AICopilotProps) {
     severity: weightedReturn > 7 ? "success" : "info",
     category: "performance",
     title: "Portfolio Performance",
-    message: `YTD weighted return: +${weightedReturn.toFixed(1)}%. ${
-      weightedReturn > 5.3
+    message: `YTD weighted return: +${weightedReturn.toFixed(1)}%. ${weightedReturn > 5.3
         ? `Outpacing BSP inflation (5.3%) by ${(weightedReturn - 5.3).toFixed(1)}pp - real returns are positive.`
         : `Below BSP inflation (5.3%) - consider increasing equity exposure to preserve purchasing power.`
-    }`,
+      }`,
   });
 
   if (aheadGoals.length > 0) {
