@@ -39,9 +39,8 @@ The **Manulife Advisor Co-Pilot** is an AI-powered platform designed to make our
 - **Quick Action Buttons** — One-tap access to:
   - ➕ **New Client** — Opens the client onboarding wizard
   - 👥 **All Clients** — Goes to the full client directory
-  - 📞 **Call Log** — (Future) Client call tracking
-  - 📄 **Reports** — (Future) Report generation
-  - 📅 **Calendar** — (Future) Meeting calendar integration
+  - 📞 **Log Activity** — Log client interactions (calls, emails, meetings)
+  - � **Compliance Center** — Access compliance-related documents and reminders
 
 - **Task Inbox** — Aggregated action items:
   - Compliance alerts (e.g., "3 clients need KYC renewal")
