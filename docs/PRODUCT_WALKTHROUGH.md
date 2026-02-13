@@ -2,7 +2,7 @@
 
 > **Audience**: Leadership Team, New Users, Stakeholders  
 > **Purpose**: Complete feature walkthrough demonstrating how the Advisor Co-Pilot transforms advisor productivity  
-> **Version**: 1.0 | February 2026
+> **Version**: 1.1 | February 2026
 
 ---
 
@@ -18,6 +18,8 @@ The **Manulife Advisor Co-Pilot** is an AI-powered platform designed to make our
 | 🔍 Advisors struggle to find latest house views and research | **DORA AI assistant** with instant research access | Real-time answers in < 3 seconds |
 | 📊 Client portfolio data scattered across multiple tools | **Unified client dashboard** with all data in one view | Single source of truth |
 | 🎯 Advisors miss follow-up actions post-meeting | **Next Best Actions & Meeting Debrief** system | Zero dropped follow-ups |
+| 💰 Fund-based selling driven by recent performance bias | **Goal-based portfolio view** with progress-first metrics | Advisors lead with goals, not fund returns |
+| 📉 Clients don't commit to regular investments | **DCA encouragement at every touchpoint** (wizard, portfolio, dashboard) | Higher monthly contribution enrollment |
 | 📱 No mobile access for advisors on the go | **Responsive design** + floating DORA chatbot | Advisors stay productive anywhere |
 
 ---
@@ -95,13 +97,27 @@ The **Manulife Advisor Co-Pilot** is an AI-powered platform designed to make our
 - Total AUM and cash holdings
 - YTD / 1-Year / 3-Year returns
 
-**b) Goal Progress Section**
+**b) Goal Progress Section — Goal-Based Selling Design**
+
+> **Design Philosophy**: The goal card is intentionally designed to shift advisor conversations from "which fund is performing well?" to "how is your goal progressing?" — supporting goal-based portfolio selling over fund-based selling.
+
 Each client has multiple financial goals (Retirement, Education, Property, etc.). Each goal card shows:
 - 🎯 **Goal name & type** (with icon)
 - 📊 **Progress bar** — Current amount vs target (e.g., ₱1.8M / ₱3.0M)
 - 📈 **Probability** — Monte Carlo-based probability of achieving the goal (e.g., 82%)
 - 🟢/🔴 **Status badge** — "On Track", "Off Track", or "Ahead"
-- 💰 **Monthly contribution** — Current DCA amount
+
+When expanded, the goal card overview is ordered **goal-progress-first**:
+
+| Priority | Metric | What It Shows |
+|----------|--------|---------------|
+| 🥇 **Primary** | % Funded, Monthly DCA, Time Left | Goal tracking metrics — the first thing the advisor discusses |
+| 🥈 **Contribution Gap** | Required vs actual monthly contribution | Red if no DCA, amber if underfunding, green if on track |
+| 🥉 **Secondary** | YTD, 1-Year, 3-Year returns | Portfolio returns — visible but visually demoted (smaller, muted text) |
+
+This ordering ensures advisors lead with "you've funded 42% of your retirement target" rather than "your fund returned +14% this year" — eliminating recency bias in the conversation.
+
+- 💰 **Monthly DCA indicator** — Shows current contribution amount; red "Not Set" warning if no DCA is configured
 - 📋 **Portfolio allocation** — Which funds are allocated to this goal and at what weight
 
 **c) Performance History Chart**
@@ -127,8 +143,13 @@ Side-by-side comparison of client's returns vs market benchmarks:
 - vs Balanced Index
 - Shows alpha (outperformance/underperformance)
 
-**f) Contribution Tracker**
-Bar chart showing monthly DCA contributions across all goals. Helps advisors identify clients who may have paused contributions.
+**f) Contribution Tracker — DCA at a Glance**
+Dashboard-level view of all monthly DCA contributions:
+- **Monthly DCA total** — Sum of all goal contributions
+- **Annual DCA** — Projected yearly investment
+- **DCA-to-income ratio** — What % of income is going into investments
+- **Per-goal breakdown** — Bar chart showing each goal's share of monthly DCA
+- Helps advisors identify clients who may have paused contributions or have goals with no DCA set up
 
 **g) Portfolio Drift Section**
 Visual comparison of **target allocation** vs **actual allocation**. Highlights when a portfolio has drifted more than 5% from its target, signaling a need for rebalancing.
@@ -204,6 +225,7 @@ A prioritized list of recommended actions, sorted by urgency:
 
 | Priority | Action | Example |
 |----------|--------|---------|
+| 🔴 **High** | Set up monthly DCA | "No monthly investment set. DCA can improve goal probability by 15%." |
 | 🔴 **High** | Increase contributions for off-track goals | "Gap of ₱21.5M for Retirement. Suggest increasing monthly DCA." |
 | 🟡 **Medium** | Review portfolio allocation | "Check for drift in equity/bond split" |
 | 🟡 **Medium** | Complete meeting follow-ups | "3 open items from Jan 15 meeting" |
@@ -315,6 +337,46 @@ Each alert links directly to the relevant client dashboard for immediate action.
 
 ---
 
+### 11. 📈 Goal-Based Selling & DCA Encouragement
+
+**What it does**: A suite of features designed to shift advisor behavior from fund-based selling (driven by recent performance bias) to goal-based portfolio selling, and to encourage clients to commit to regular monthly investments through Dollar Cost Averaging (DCA).
+
+#### Goal Wizard — Investment Plan Step
+
+When creating a new goal, the wizard now includes a dedicated **"Investment Plan"** step (between target amount and summary):
+
+1. **Auto-calculated monthly requirement** — "To reach ₱5M by 2035, you need ₱46,296/month"
+2. **DCA enrollment toggle** — Defaulted ON, encouraging automatic monthly investing
+3. **Monthly amount slider** — Adjustable with real-time goal coverage calculation
+4. **Projected growth table** — Monthly × months = total invested, with goal coverage %
+5. **DCA education callout** — Explains peso cost averaging, reducing timing risk, and building discipline
+6. **Warning if DCA is declined** — Amber callout: "Without monthly contributions, this goal relies entirely on lump-sum investments and market timing"
+
+The captured monthly contribution is saved to the goal — previously this was always zero.
+
+#### Portfolio Builder — DCA Investment Section
+
+The goal portfolio editor now includes a **Monthly Investment (DCA)** section between fund allocations and trade execution:
+
+- **Enable Automatic Monthly Investing** toggle
+- **Monthly amount input** with "Use suggested" button (auto-calculated from the goal gap)
+- **Compact DCA education** showing: reduces timing risk, averages purchase price, builds discipline
+- **"DCA Active" badge** when enabled
+
+#### Contribution Gap Indicator
+
+Every goal card now shows a color-coded **Contribution Gap** indicator:
+
+| State | Color | Message |
+|-------|-------|---------|
+| No DCA set | 🔴 Red | "No Monthly Investment Set — Setting up ₱X/mo would put this goal on track" |
+| Underfunding | 🟡 Amber | "Increase by ₱X/mo — Currently ₱Y/mo, need ₱Z/mo" |
+| On track | 🟢 Green | "Contributions On Track — Contributing ₱X/mo (need ₱Y/mo)" |
+
+**Why it matters**: These features collectively accelerate the path from "client agrees to a goal" to "trade is submitted with monthly DCA enabled" — reducing drop-off between meetings and ensuring clients commit to regular investing.
+
+---
+
 ## How It Helps Advisors Be More Productive
 
 ### Before Co-Pilot (Current Workflow)
@@ -415,7 +477,10 @@ Every DORA response includes a compliance badge:
 **Slide 5: The Impact**
 > "92% reduction in meeting prep time. 2× increase in advisor capacity. Near-zero follow-up drops. 67% faster onboarding for new advisors."
 
-**Slide 6: Next Steps**
+**Slide 6: Goal-Based Selling & DCA**
+> "We've redesigned the advisor experience to lead with goals, not fund performance. Every touchpoint — from goal creation to portfolio management — encourages monthly DCA enrollment. The result: higher client commitment, reduced performance-chasing, and better long-term outcomes."
+
+**Slide 7: Next Steps**
 > "Integrate with iFUNDS platform. Deploy production AI models via Azure. Pilot with 50 advisors in Philippines. Scale to ASEAN."
 
 ---
