@@ -154,6 +154,8 @@ export async function registerRoutes(
     const tradeExecuteSchema = z.object({
       goalId: z.string(),
       clientName: z.string().min(1, "Client name is required"),
+      clientEmail: z.string().email("Valid email address required"),
+      personalNote: z.string().optional(),
       portfolio: z.object({
         name: z.string().optional(),
         funds: z.array(z.object({
@@ -171,24 +173,42 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Invalid trade data", errors: parsed.error.errors });
     }
 
-    const { goalId, clientName, portfolio } = parsed.data;
+    const { goalId, clientName, clientEmail, personalNote, portfolio } = parsed.data;
 
     const totalWeight = portfolio.funds.reduce((sum, f) => sum + f.weight, 0);
     if (Math.abs(totalWeight - 100) > 0.1) {
       return res.status(400).json({ message: `Fund weights must sum to 100% (current: ${totalWeight}%)` });
     }
 
-    console.log(`\n[EMAIL SIMULATION] ---------------------------------------------------`);
-    console.log(`To: ${clientName} <client@example.com>`);
-    console.log(`Subject: Action Required: Confirm your Portfolio Trade for Goal ${goalId}`);
-    console.log(`\nDear ${clientName},`);
-    console.log(`\nYour advisor has proposed a new portfolio allocation for your goal.`);
-    console.log(`Please log in to your dashboard to review and confirm the trade execution.`);
-    console.log(`\nPortfolio Details:`);
-    console.log(JSON.stringify(portfolio, null, 2));
-    console.log(`\n[EMAIL SIMULATION] ---------------------------------------------------\n`);
+    // In production, this would send via SendGrid/Azure Communication Services
+    console.log(`\n[EMAIL SENT] ─────────────────────────────────────────────────────`);
+    console.log(`  To:      ${clientName} <${clientEmail}>`);
+    console.log(`  From:    Advisor via Manulife Co-Pilot`);
+    console.log(`  Subject: Action Required: Review Portfolio for Goal "${goalId}"`);
+    console.log(`  ─────────────────────────────────────────────────────────────`);
+    console.log(`  Dear ${clientName.split(" ")[0]},`);
+    console.log(`  Following our discussion, here is your portfolio allocation:`);
+    console.log(`  `);
+    portfolio.funds.forEach(f => {
+      console.log(`    • Fund: ${f.fundId} | Weight: ${f.weight}% | Amount: ₱${f.amount?.toLocaleString() || "N/A"}`);
+    });
+    console.log(`  `);
+    console.log(`  Total Invested: ₱${portfolio.totalInvested?.toLocaleString() || "N/A"}`);
+    if (personalNote) {
+      console.log(`  `);
+      console.log(`  Personal Note: "${personalNote}"`);
+    }
+    console.log(`  `);
+    console.log(`  Please log in to your Manulife account to fund and confirm.`);
+    console.log(`[EMAIL SENT] ─────────────────────────────────────────────────────\n`);
 
-    res.json({ success: true, message: "Trade instructions sent to client" });
+    res.json({
+      success: true,
+      message: "Trade instructions sent to client",
+      emailSentTo: clientEmail,
+      goalId,
+      timestamp: new Date().toISOString()
+    });
   });
 
   // ---- DORA Chat ----

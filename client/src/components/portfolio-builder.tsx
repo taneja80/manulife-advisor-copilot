@@ -32,6 +32,7 @@ import {
   Trash2,
   RotateCcw,
   Check,
+  Mail,
 } from "lucide-react";
 import {
   productBaskets,
@@ -46,6 +47,7 @@ import {
 
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { TradeEmailPreview } from "@/components/trade-email-preview";
 
 interface GoalPortfolioEditorProps {
   goal: Goal;
@@ -61,6 +63,7 @@ export function GoalPortfolioEditor({ goal, clientName, onUpdate }: GoalPortfoli
   const [hasChanges, setHasChanges] = useState(false);
   const [consentGiven, setConsentGiven] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
 
   const totalWeight = funds.reduce((sum, f) => sum + f.weight, 0);
   const isValid = totalWeight === 100;
@@ -127,12 +130,18 @@ export function GoalPortfolioEditor({ goal, clientName, onUpdate }: GoalPortfoli
     }
   };
 
-  const handleExecuteTrade = async () => {
+  const handleExecuteTrade = () => {
+    setEmailDialogOpen(true);
+  };
+
+  const handleSendTradeEmail = async (clientEmail: string, personalNote: string) => {
     setIsExecuting(true);
     try {
       await apiRequest("POST", "/api/trade/execute", {
         goalId: goal.id,
         clientName,
+        clientEmail,
+        personalNote,
         portfolio: {
           name: goal.name,
           funds,
@@ -142,16 +151,17 @@ export function GoalPortfolioEditor({ goal, clientName, onUpdate }: GoalPortfoli
 
       toast({
         title: "Trade Instructions Sent",
-        description: `Email sent to ${clientName} with trade details for execution.`,
-        variant: "default", // Using default variant with a success icon styling if needed, or check if 'success' variant exists in toast
+        description: `Email sent to ${clientEmail} with trade details for ${goal.name}.`,
+        variant: "default",
       });
-      setConsentGiven(false); // Reset
+      setConsentGiven(false);
     } catch (error) {
       toast({
         title: "Execution Failed",
         description: "Failed to send trade instructions. Please try again.",
         variant: "destructive",
       });
+      throw error; // Re-throw so the dialog knows it failed
     } finally {
       setIsExecuting(false);
     }
@@ -194,8 +204,8 @@ export function GoalPortfolioEditor({ goal, clientName, onUpdate }: GoalPortfoli
                 onClick={handleExecuteTrade}
                 disabled={isExecuting || hasChanges}
               >
-                <TrendingUp className="w-3.5 h-3.5" />
-                {isExecuting ? "Sending..." : "Execute Trade"}
+                <Mail className="w-3.5 h-3.5" />
+                {isExecuting ? "Sending..." : "Send Trade Email"}
               </Button>
             )}
             <div className="text-right ml-2 border-l pl-2">
@@ -312,6 +322,16 @@ export function GoalPortfolioEditor({ goal, clientName, onUpdate }: GoalPortfoli
           </p>
         )}
       </CardContent>
+
+      <TradeEmailPreview
+        open={emailDialogOpen}
+        onClose={() => setEmailDialogOpen(false)}
+        onSend={handleSendTradeEmail}
+        clientName={clientName}
+        goal={goal}
+        funds={funds}
+        isSending={isExecuting}
+      />
     </Card>
   );
 }
