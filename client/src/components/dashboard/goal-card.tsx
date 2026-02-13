@@ -112,18 +112,44 @@ export function GoalCard({ goal, index, expanded, activeTab, clientName, onToggl
                             <AnimatePresence mode="wait">
                                 {activeTab === "overview" && (
                                     <motion.div key="overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+                                        {/* Goal Progress - PRIMARY METRICS */}
                                         <div className="grid grid-cols-3 gap-3">
-                                            <div className="text-center p-2 rounded-lg bg-muted/40">
-                                                <p className="text-xs text-muted-foreground">YTD</p>
-                                                <p className="text-sm font-bold text-[#00A758]" data-testid={`text-goal-ytd-${goal.id}`}>+{goal.returns.ytd}%</p>
+                                            <div className="text-center p-2 rounded-lg bg-[#00A758]/5 border border-[#00A758]/10">
+                                                <p className="text-[10px] text-muted-foreground">Funded</p>
+                                                <p className="text-sm font-bold text-[#00A758]" data-testid={`text-goal-funded-${goal.id}`}>
+                                                    {Math.round((goal.currentAmount / goal.targetAmount) * 100)}%
+                                                </p>
+                                            </div>
+                                            <div className="text-center p-2 rounded-lg bg-[#00A758]/5 border border-[#00A758]/10">
+                                                <p className="text-[10px] text-muted-foreground">Monthly DCA</p>
+                                                <p className={`text-sm font-bold ${goal.monthlyContribution > 0 ? "text-[#00A758]" : "text-[#D9534F]"}`} data-testid={`text-goal-dca-${goal.id}`}>
+                                                    {goal.monthlyContribution > 0 ? formatPHP(goal.monthlyContribution) : "Not Set"}
+                                                </p>
                                             </div>
                                             <div className="text-center p-2 rounded-lg bg-muted/40">
-                                                <p className="text-xs text-muted-foreground">1-Year</p>
-                                                <p className="text-sm font-bold text-[#00A758]" data-testid={`text-goal-1y-${goal.id}`}>+{goal.returns.oneYear}%</p>
+                                                <p className="text-[10px] text-muted-foreground">Time Left</p>
+                                                <p className="text-sm font-bold" data-testid={`text-goal-timeleft-${goal.id}`}>
+                                                    {Math.max(0, parseInt(goal.targetDate) - 2026)} yrs
+                                                </p>
                                             </div>
-                                            <div className="text-center p-2 rounded-lg bg-muted/40">
-                                                <p className="text-xs text-muted-foreground">3-Year</p>
-                                                <p className="text-sm font-bold text-[#00A758]" data-testid={`text-goal-3y-${goal.id}`}>+{goal.returns.threeYear}%</p>
+                                        </div>
+
+                                        {/* Contribution Gap Indicator */}
+                                        <ContributionGap goal={goal} />
+
+                                        {/* Portfolio Returns - SECONDARY */}
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <div className="text-center p-1.5 rounded-lg bg-muted/30">
+                                                <p className="text-[10px] text-muted-foreground">YTD Return</p>
+                                                <p className="text-xs font-medium text-muted-foreground" data-testid={`text-goal-ytd-${goal.id}`}>+{goal.returns.ytd}%</p>
+                                            </div>
+                                            <div className="text-center p-1.5 rounded-lg bg-muted/30">
+                                                <p className="text-[10px] text-muted-foreground">1-Year</p>
+                                                <p className="text-xs font-medium text-muted-foreground" data-testid={`text-goal-1y-${goal.id}`}>+{goal.returns.oneYear}%</p>
+                                            </div>
+                                            <div className="text-center p-1.5 rounded-lg bg-muted/30">
+                                                <p className="text-[10px] text-muted-foreground">3-Year</p>
+                                                <p className="text-xs font-medium text-muted-foreground" data-testid={`text-goal-3y-${goal.id}`}>+{goal.returns.threeYear}%</p>
                                             </div>
                                         </div>
 
@@ -179,8 +205,64 @@ export function GoalCard({ goal, index, expanded, activeTab, clientName, onToggl
     );
 }
 
+function ContributionGap({ goal }: { goal: Goal }) {
+    const yearsLeft = Math.max(1, parseInt(goal.targetDate) - 2026);
+    const gap = goal.targetAmount - goal.currentAmount;
+    const requiredMonthly = Math.round(gap / (yearsLeft * 12));
+    const actualMonthly = goal.monthlyContribution;
+    const contributionGap = requiredMonthly - actualMonthly;
+    const isOnTrack = contributionGap <= 0;
+    const hasNoDCA = actualMonthly === 0;
+
+    return (
+        <div
+            className={`p-2.5 rounded-lg text-xs leading-relaxed space-y-1 ${hasNoDCA
+                    ? "bg-[#D9534F]/5 border border-[#D9534F]/15"
+                    : isOnTrack
+                        ? "bg-[#00A758]/5 border border-[#00A758]/15"
+                        : "bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30"
+                }`}
+            data-testid={`contribution-gap-${goal.id}`}
+        >
+            {hasNoDCA ? (
+                <>
+                    <p className="font-semibold text-[#D9534F]">⚠ No Monthly Investment Set</p>
+                    <p className="text-[11px] text-muted-foreground">
+                        Setting up a monthly contribution of <span className="font-bold text-foreground">{formatPHP(requiredMonthly)}/mo</span> would
+                        put this goal on track. DCA (Dollar Cost Averaging) reduces market timing risk.
+                    </p>
+                </>
+            ) : isOnTrack ? (
+                <>
+                    <p className="font-semibold text-[#00A758]">✓ Contributions On Track</p>
+                    <p className="text-[11px] text-muted-foreground">
+                        Contributing {formatPHP(actualMonthly)}/mo (need {formatPHP(requiredMonthly)}/mo). Keep going!
+                    </p>
+                </>
+            ) : (
+                <>
+                    <p className="font-semibold text-amber-700 dark:text-amber-400">
+                        ↑ Increase by {formatPHP(contributionGap)}/mo
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                        Currently {formatPHP(actualMonthly)}/mo — need {formatPHP(requiredMonthly)}/mo to reach target by {goal.targetDate}.
+                    </p>
+                </>
+            )}
+        </div>
+    );
+}
+
 function GoalNextAction({ goal }: { goal: Goal }) {
     const actions: { text: string; severity: "warning" | "info" | "success" }[] = [];
+
+    // DCA-specific action — highest priority
+    if (goal.monthlyContribution === 0) {
+        actions.push({
+            text: `No monthly investment set up. Enrolling in DCA can improve goal probability by up to 15% through peso cost averaging.`,
+            severity: "warning",
+        });
+    }
 
     if (goal.status === "off-track") {
         const gap = goal.targetAmount - goal.currentAmount;

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -34,6 +35,7 @@ import {
 } from "lucide-react";
 import { formatPHP, manulifeFunds } from "@/lib/mockData";
 import type { ModelPortfolio } from "@shared/schema";
+import { DCABenefitCallout } from "@/components/dashboard/dca-benefit-callout";
 
 const INFLATION_RATE = 0.053;
 
@@ -362,6 +364,8 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
 
   const [assignedPortfolio, setAssignedPortfolio] = useState<ModelPortfolio | null>(null);
   const [portfolioLoading, setPortfolioLoading] = useState(false);
+  const [wizardMonthly, setWizardMonthly] = useState(0);
+  const [dcaEnrolled, setDcaEnrolled] = useState(true); // Default ON to encourage DCA
 
   const currentYear = 2026;
   const yearsFromNow = timeHorizon - currentYear;
@@ -396,7 +400,7 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
 
   const newClientStepOffset = isNewClient ? 3 : 0;
 
-  const getGoalStepCount = () => (knowsTarget === false ? 5 : 4);
+  const getGoalStepCount = () => (knowsTarget === false ? 6 : 5); // +1 for Investment Plan step
   const totalSteps = newClientStepOffset + getGoalStepCount();
 
   const getStepLabels = () => {
@@ -415,12 +419,14 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
           { title: "Target Amount", subtitle: "Does your client have a target in mind?" },
           { title: "Let's Calculate", subtitle: "Answer a few questions to estimate the target" },
           { title: "Your Target", subtitle: "Here's the inflation-adjusted amount" },
+          { title: "Investment Plan", subtitle: "Set up monthly contributions" },
           { title: "Summary", subtitle: "Review and confirm the goal" },
         ]
         : [
           { title: "Choose Your Goal", subtitle: "What is your client saving for?" },
           { title: "Target Amount", subtitle: "Does your client have a target in mind?" },
           { title: "Set Your Target", subtitle: "Enter the target amount and timeline" },
+          { title: "Investment Plan", subtitle: "Set up monthly contributions" },
           { title: "Summary", subtitle: "Review and confirm the goal" },
         ];
 
@@ -465,10 +471,12 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
     if (knowsTarget === false) {
       if (goalStep === 2) return Object.keys(questionAnswers).length > 0;
       if (goalStep === 3) return true;
-      if (goalStep === 4) return true;
+      if (goalStep === 4) return wizardMonthly > 0 || !dcaEnrolled; // Investment Plan — must set amount or opt out
+      if (goalStep === 5) return true;
     } else {
       if (goalStep === 2) return manualTarget > 0;
-      if (goalStep === 3) return true;
+      if (goalStep === 3) return wizardMonthly > 0 || !dcaEnrolled; // Investment Plan
+      if (goalStep === 4) return true;
     }
     return false;
   };
@@ -503,6 +511,13 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
       setTimeHorizon(currentYear + baseResult.defaultYears);
       setCustomTarget(null);
       setIsEditingTarget(false);
+    }
+    // Auto-calculate suggested monthly when entering Investment Plan step
+    const investmentPlanStep = knowsTarget === false ? 4 : 3;
+    if (goalStep + 1 === investmentPlanStep && wizardMonthly === 0) {
+      const years = Math.max(1, timeHorizon - currentYear);
+      const suggestedMonthly = Math.round(finalTarget / (years * 12));
+      setWizardMonthly(suggestedMonthly);
     }
     setStep(step + 1);
   };
@@ -620,8 +635,8 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
                   key={optIndex}
                   onClick={() => setRiskAnswers((prev) => ({ ...prev, [q.id]: opt.score }))}
                   className={`w-full text-left p-3 rounded-lg border text-sm transition-colors ${isSelected
-                      ? "border-[#00A758] bg-[#00A758]/5 font-medium"
-                      : "border-border"
+                    ? "border-[#00A758] bg-[#00A758]/5 font-medium"
+                    : "border-border"
                     }`}
                   data-testid={`option-${q.id}-${optIndex}`}
                 >
@@ -731,8 +746,8 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
                 setQuestionAnswers({});
               }}
               className={`flex flex-col items-center gap-2 p-4 rounded-lg border transition-all ${selectedGoal === goal.id
-                  ? "border-[#00A758] bg-[#00A758]/5"
-                  : "border-border"
+                ? "border-[#00A758] bg-[#00A758]/5"
+                : "border-border"
                 }`}
               data-testid={`button-goal-${goal.id}`}
             >
@@ -765,8 +780,8 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
             <button
               onClick={() => setKnowsTarget(true)}
               className={`flex flex-col items-center gap-3 p-6 rounded-lg border transition-all ${knowsTarget === true
-                  ? "border-[#00A758] bg-[#00A758]/5"
-                  : "border-border"
+                ? "border-[#00A758] bg-[#00A758]/5"
+                : "border-border"
                 }`}
               data-testid="button-knows-target-yes"
             >
@@ -782,8 +797,8 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
             <button
               onClick={() => setKnowsTarget(false)}
               className={`flex flex-col items-center gap-3 p-6 rounded-lg border transition-all ${knowsTarget === false
-                  ? "border-[#00A758] bg-[#00A758]/5"
-                  : "border-border"
+                ? "border-[#00A758] bg-[#00A758]/5"
+                : "border-border"
                 }`}
               data-testid="button-knows-target-no"
             >
@@ -1000,7 +1015,99 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
       );
     }
 
-    const lastGoalStep = knowsTarget === false ? 4 : 3;
+    const investmentPlanStep = knowsTarget === false ? 4 : 3;
+    if (goalStep === investmentPlanStep) {
+      const years = Math.max(1, timeHorizon - currentYear);
+      return (
+        <motion.div
+          key="step-investment-plan"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          className="space-y-5"
+        >
+          <div className="p-4 rounded-lg border border-[#00A758]/20 bg-[#00A758]/5 space-y-1">
+            <p className="text-xs text-muted-foreground">To reach your goal of</p>
+            <p className="text-lg font-bold">{formatPHP(finalTarget)} by {timeHorizon}</p>
+            <p className="text-xs text-muted-foreground">You need approximately</p>
+            <p className="text-2xl font-bold text-[#00A758]">{formatPHP(Math.round(finalTarget / (years * 12)))}/month</p>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Switch checked={dcaEnrolled} onCheckedChange={setDcaEnrolled} data-testid="switch-wizard-dca" />
+                <Label className="text-sm font-medium">Enroll in Automatic Monthly Investing (DCA)</Label>
+              </div>
+            </div>
+
+            <AnimatePresence>
+              {dcaEnrolled && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-4"
+                >
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Monthly investment amount</Label>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-muted-foreground">₱</span>
+                      <Slider
+                        value={[wizardMonthly]}
+                        onValueChange={(v) => setWizardMonthly(v[0])}
+                        min={1000}
+                        max={Math.max(100000, Math.round(finalTarget / (years * 12)) * 2)}
+                        step={1000}
+                        className="flex-1"
+                        data-testid="slider-wizard-monthly"
+                      />
+                      <span className="text-sm font-bold w-28 text-right">{formatPHP(wizardMonthly)}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-muted/40 space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Monthly investment</span>
+                      <span className="font-medium">{formatPHP(wizardMonthly)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Duration</span>
+                      <span className="font-medium">{years} years ({years * 12} months)</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Total invested</span>
+                      <span className="font-medium">{formatPHP(wizardMonthly * years * 12)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs border-t pt-1 mt-1">
+                      <span className="text-muted-foreground">Goal coverage</span>
+                      <span className={`font-bold ${(wizardMonthly * years * 12) >= finalTarget ? "text-[#00A758]" : "text-amber-600"}`}>
+                        {Math.min(100, Math.round((wizardMonthly * years * 12) / finalTarget * 100))}%
+                        {(wizardMonthly * years * 12) >= finalTarget ? " ✓" : ""}
+                      </span>
+                    </div>
+                  </div>
+
+                  <DCABenefitCallout monthlyAmount={wizardMonthly} years={years} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {!dcaEnrolled && (
+              <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30">
+                <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">⚠ Not recommended</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Without monthly contributions, this goal relies entirely on lump-sum investments and market timing.
+                  DCA reduces timing risk and builds investing discipline.
+                </p>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      );
+    }
+
+    const lastGoalStep = knowsTarget === false ? 5 : 4;
     if (goalStep === lastGoalStep) {
       const riskProfile = isNewClient && calculatedRisk ? calculatedRisk.profile : selectedRisk;
       const portfolioFundNames = assignedPortfolio
@@ -1094,6 +1201,12 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
                   {riskProfile}
                 </Badge>
               </div>
+              <div>
+                <span className="text-muted-foreground text-xs">Monthly DCA</span>
+                <p className={`font-medium ${dcaEnrolled ? "text-[#00A758]" : "text-muted-foreground"}`}>
+                  {dcaEnrolled ? formatPHP(wizardMonthly) + "/mo" : "Not enrolled"}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -1124,8 +1237,8 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
                     key={risk}
                     onClick={() => setSelectedRisk(risk)}
                     className={`p-3 rounded-lg border text-center transition-all ${selectedRisk === risk
-                        ? "border-[#00A758] bg-[#00A758]/5"
-                        : "border-border"
+                      ? "border-[#00A758] bg-[#00A758]/5"
+                      : "border-border"
                       }`}
                     data-testid={`button-risk-${risk.toLowerCase()}`}
                   >
@@ -1165,7 +1278,7 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
       probability: 85, // Default high probability for new plan
       status: "on-track",
       riskProfile: riskProfile,
-      monthlyContribution: 0, // Could be gathered
+      monthlyContribution: dcaEnrolled ? wizardMonthly : 0,
       portfolio: assignedPortfolio ? {
         totalInvested: 0,
         funds: assignedPortfolio.funds.map(f => ({
@@ -1233,8 +1346,8 @@ export function GoalWizard({ onComplete, onCancel, clientName, isNewClient }: Go
           <div key={i} className="flex items-center gap-1">
             <div
               className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors ${i <= step
-                  ? "bg-[#00A758] text-white"
-                  : "bg-muted text-muted-foreground"
+                ? "bg-[#00A758] text-white"
+                : "bg-muted text-muted-foreground"
                 }`}
               data-testid={`step-indicator-${i}`}
             >

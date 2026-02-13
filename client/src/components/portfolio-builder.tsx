@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +48,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { TradeEmailPreview } from "@/components/trade-email-preview";
+import { DCABenefitCallout } from "@/components/dashboard/dca-benefit-callout";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Wallet } from "lucide-react";
 
 interface GoalPortfolioEditorProps {
   goal: Goal;
@@ -60,13 +64,24 @@ export function GoalPortfolioEditor({ goal, clientName, onUpdate }: GoalPortfoli
   const [funds, setFunds] = useState<GoalFundAllocation[]>(
     goal.portfolio.funds.map((f) => ({ ...f }))
   );
-  const [hasChanges, setHasChanges] = useState(false);
   const [consentGiven, setConsentGiven] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [dcaEnabled, setDcaEnabled] = useState(goal.monthlyContribution > 0);
+  const [monthlyAmount, setMonthlyAmount] = useState(goal.monthlyContribution);
 
-  const totalWeight = funds.reduce((sum, f) => sum + f.weight, 0);
+  const yearsLeft = Math.max(1, parseInt(goal.targetDate) - 2026);
+  const suggestedMonthly = useMemo(() => {
+    const gap = goal.targetAmount - goal.currentAmount;
+    return Math.round(gap / (yearsLeft * 12));
+  }, [goal.targetAmount, goal.currentAmount, yearsLeft]);
+
+  const totalWeight = funds.reduce((a, b) => a + b.weight, 0);
   const isValid = totalWeight === 100;
+  const hasChanges =
+    JSON.stringify(funds) !== JSON.stringify(goal.portfolio.funds) ||
+    dcaEnabled !== (goal.monthlyContribution > 0) ||
+    (dcaEnabled && monthlyAmount !== goal.monthlyContribution);
 
   const availableFunds = manulifeFunds.filter(
     (mf) => !funds.some((f) => f.fundId === mf.id)
@@ -80,7 +95,6 @@ export function GoalPortfolioEditor({ goal, clientName, onUpdate }: GoalPortfoli
           : f
       )
     );
-    setHasChanges(true);
     setConsentGiven(false); // Reset consent on change
   };
 
@@ -89,25 +103,23 @@ export function GoalPortfolioEditor({ goal, clientName, onUpdate }: GoalPortfoli
       ...prev,
       { fundId, weight: 0, amount: 0 },
     ]);
-    setHasChanges(true);
     setConsentGiven(false);
   };
 
   const handleRemoveFund = (fundId: string) => {
     setFunds((prev) => prev.filter((f) => f.fundId !== fundId));
-    setHasChanges(true);
     setConsentGiven(false);
   };
 
   const handleReset = () => {
     setFunds(goal.portfolio.funds.map((f) => ({ ...f })));
-    setHasChanges(false);
+    setDcaEnabled(goal.monthlyContribution > 0);
+    setMonthlyAmount(goal.monthlyContribution);
     setConsentGiven(false);
   };
 
   const handleSave = () => {
     onUpdate?.(goal.id, funds);
-    setHasChanges(false);
   };
 
   const handleGetConsent = () => {
@@ -321,6 +333,75 @@ export function GoalPortfolioEditor({ goal, clientName, onUpdate }: GoalPortfoli
             Total allocation must equal 100%. Currently at {totalWeight}%.
           </p>
         )}
+
+        {/* DCA Investment Section */}
+        <div className="border-t pt-4 space-y-3" data-testid={`dca-section-${goal.id}`}>
+          <div className="flex items-center gap-2">
+            <Wallet className="w-4 h-4 text-[#00A758]" />
+            <span className="text-sm font-semibold">Monthly Investment (DCA)</span>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={dcaEnabled}
+                onCheckedChange={setDcaEnabled}
+                data-testid={`switch-dca-goal-${goal.id}`}
+              />
+              <Label className="text-sm">Enable Automatic Monthly Investing</Label>
+            </div>
+            {dcaEnabled && (
+              <Badge variant="default" className="text-[11px] bg-[#00A758] border-[#00A758]">
+                DCA Active
+              </Badge>
+            )}
+          </div>
+
+          <AnimatePresence>
+            {dcaEnabled && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-3"
+              >
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Monthly amount</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={monthlyAmount}
+                      onChange={(e) => setMonthlyAmount(Number(e.target.value))}
+                      className="flex-1"
+                      data-testid={`input-dca-amount-${goal.id}`}
+                    />
+                    {monthlyAmount !== suggestedMonthly && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setMonthlyAmount(suggestedMonthly)}
+                        className="text-[11px] shrink-0"
+                      >
+                        Use suggested: {formatPHP(suggestedMonthly)}
+                      </Button>
+                    )}
+                  </div>
+                  {monthlyAmount < suggestedMonthly && monthlyAmount > 0 && (
+                    <p className="text-[11px] text-amber-600">
+                      ↑ Suggested: {formatPHP(suggestedMonthly)}/mo to reach your target by {goal.targetDate}
+                    </p>
+                  )}
+                </div>
+
+                <DCABenefitCallout
+                  compact
+                  monthlyAmount={monthlyAmount || suggestedMonthly}
+                  years={yearsLeft}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </CardContent>
 
       <TradeEmailPreview
