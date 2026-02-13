@@ -39,6 +39,8 @@ Replace manual work with automation. Every minute we save on admin is a minute t
 | Floating DORA on all pages | ✅ Shipped | Always-available AI assistant |
 | Trade Email with Preview | ✅ Shipped | End-to-end goal → email → trade flow |
 | Portfolio Builder with Consent | ✅ Shipped | Compliance-first portfolio construction |
+| Goal-Based Selling Design (progress-first UI, contribution gap) | ✅ Shipped | Advisors lead with goals, not fund returns |
+| DCA Encouragement (wizard Investment Plan step, portfolio DCA section) | ✅ Shipped | Higher monthly contribution enrollment |
 
 **KPI**: Pilot with 20 advisors in Philippines. Target: 50% reduction in self-reported meeting prep time.
 
